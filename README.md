@@ -18,13 +18,13 @@ This Python script converts speaker diarization data from a JSON file to an ELAN
 
 1. Clone this repository:
    ```
-   git clone https://github.com/yourusername/diarization-to-elan.git
-   cd diarization-to-elan
+   git clone https://github.com/apartmentlines/diarization-to-eaf.git
+   cd diarization-to-eaf
    ```
 
-2. Install the required packages:
+2. Install the development package:
    ```
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 ## Usage
@@ -32,14 +32,29 @@ This Python script converts speaker diarization data from a JSON file to an ELAN
 Run the script from the command line:
 
 ```
-python src/main.py path/to/your/diarization_data.json
+diarization-to-eaf test.json
 ```
 
 This will create an .eaf file in the same directory as the input JSON file, with the same basename.
 
-## Configuration
+## JSON file format
 
-You can modify the `config.ini` file to adjust logging levels and other parameters.
+The diarization segments should be a JSON array of objects with the following attributes:
+
+```json
+[
+  {
+    "speaker": "SPEAKER_00",
+    "start": 0.005,
+    "end": 3.025
+  },
+  {
+    "speaker": "SPEAKER_01",
+    "start": 4.285,
+    "end": 5.285
+  }
+]
+```
 
 ## Contributing
 
