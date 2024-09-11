@@ -1,0 +1,5 @@
+# Ignore .wav, .json .eaf, and .psfx files in the root directory
+/*.wav
+/*.json
+/*.eaf
+/*.pfsx
