@@ -16,7 +16,6 @@ def parse_arguments() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description="Convert speaker diarization JSON to ELAN Annotation Format (EAF)")
     parser.add_argument("input_file", type=str, help="Path to the input JSON file containing speaker diarization data")
-    parser.add_argument("-o", "--output", type=str, help="Path to the output EAF file (default: same as input with .eaf extension)")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
     return parser.parse_args()
 
