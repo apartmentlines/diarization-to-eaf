@@ -36,7 +36,7 @@ def main() -> None:
             raise FileNotFoundError(f"Input file not found: {args.input_file}")
 
         input_path = Path(args.input_file)
-        output_path = Path(args.output) if args.output else input_path.with_suffix('.eaf')
+        output_path = input_path.with_suffix('.eaf')
 
         logger.debug(f"Processing input file: {input_path}")
         logger.debug(f"Output will be saved to: {output_path}")
