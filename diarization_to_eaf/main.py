@@ -1,5 +1,8 @@
+#!/usr/bin/env python3
+
 import argparse
 import sys
+from typing import Optional
 from pathlib import Path
 
 from diarization_to_eaf.diarization_processor import DiarizationProcessor
@@ -15,9 +18,43 @@ def parse_arguments() -> argparse.Namespace:
     :rtype: argparse.Namespace
     """
     parser = argparse.ArgumentParser(description="Convert speaker diarization JSON to ELAN Annotation Format (EAF)")
-    parser.add_argument("input_file", type=str, help="Path to the input JSON file containing speaker diarization data")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("--input-file", type=str, help="Path to the input JSON file containing speaker diarization data")
+    group.add_argument("--input-dir", type=str, help="Path to the input directory containing JSON files")
+    parser.add_argument("--output-dir", type=str, help="Path to the output directory for EAF files")
+    parser.add_argument("--media-dir", type=str, help="Path to the directory containing media files")
+    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
     return parser.parse_args()
+
+
+def process_file(input_path: Path, output_path: Path, media_dir: Optional[Path], log_level: str) -> None:
+    """
+    Process a single JSON file and generate an EAF file.
+
+    :param input_path: Path to the input JSON file
+    :param output_path: Path to the output EAF file
+    :param media_dir: Optional path to the directory containing media files
+    :param log_level: Logging level
+    """
+    logger = setup_logging(log_level, "process_file")
+
+    try:
+        # Process diarization data
+        logger.debug(f"Processing input file: {input_path}")
+        processor = DiarizationProcessor(str(input_path), log_level)
+        processor.load_and_validate_data()
+        operator_segments, caller_segments = processor.process_diarization_data()
+
+        # Generate EAF file
+        logger.debug("Initializing EAFGenerator")
+        generator = EAFGenerator(str(input_path), operator_segments, caller_segments, media_dir, log_level)
+        generator.generate_eaf()
+        eaf_file_path = generator.write_to_file(output_path)
+
+        logger.info(f"EAF file successfully generated: {eaf_file_path}")
+
+    except Exception as e:
+        logger.exception(f"An error occurred while processing {input_path}: {e}")
 
 
 def main() -> None:
@@ -27,39 +64,40 @@ def main() -> None:
     args = parse_arguments()
 
     # Setup logging
-    log_level = "DEBUG" if args.verbose else "INFO"
+    log_level = "DEBUG" if args.debug else "INFO"
     logger = setup_logging(log_level, "main")
 
     try:
-        # Validate input file
-        if not check_file_exists(args.input_file):
-            raise FileNotFoundError(f"Input file not found: {args.input_file}")
+        media_dir = Path(args.media_dir) if args.media_dir else None
 
-        input_path = Path(args.input_file)
-        output_path = input_path.with_suffix('.eaf')
+        if args.input_file:
+            # Process single file
+            if not check_file_exists(args.input_file):
+                raise FileNotFoundError(f"Input file not found: {args.input_file}")
 
-        logger.debug(f"Processing input file: {input_path}")
-        logger.debug(f"Output will be saved to: {output_path}")
+            input_path = Path(args.input_file)
+            output_dir = Path(args.output_dir) if args.output_dir else input_path.parent
+            output_path = output_dir / input_path.with_suffix('.eaf').name
 
-        # Process diarization data
-        logger.debug("Initializing DiarizationProcessor")
-        processor = DiarizationProcessor(str(input_path), log_level)
-        processor.load_and_validate_data()
-        operator_segments, caller_segments = processor.process_diarization_data()
+            process_file(input_path, output_path, media_dir, log_level)
 
-        # Generate EAF file
-        logger.debug("Initializing EAFGenerator")
-        generator = EAFGenerator(str(input_path), operator_segments, caller_segments, log_level)
-        generator.generate_eaf()
-        eaf_file_path = generator.write_to_file()
+        elif args.input_dir:
+            # Process all JSON files in the input directory
+            input_dir = Path(args.input_dir)
+            if not input_dir.is_dir():
+                raise NotADirectoryError(f"Input directory not found: {args.input_dir}")
 
-        logger.info(f"EAF file successfully generated: {eaf_file_path}")
+            output_dir = Path(args.output_dir) if args.output_dir else input_dir
+
+            for json_file in input_dir.glob('*.json'):
+                output_path = output_dir / json_file.with_suffix('.eaf').name
+                process_file(json_file, output_path, media_dir, log_level)
 
     except FileNotFoundError as e:
         logger.error(f"File not found: {e}")
         sys.exit(1)
-    except ValueError as e:
-        logger.error(f"Invalid data: {e}")
+    except NotADirectoryError as e:
+        logger.error(f"Directory not found: {e}")
         sys.exit(1)
     except Exception as e:
         logger.exception(f"An unexpected error occurred: {e}")

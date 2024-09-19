@@ -9,7 +9,6 @@ import pytest
 from diarization_to_eaf.utils import (
     setup_logging,
     check_file_exists,
-    validate_json,
     create_progress_bar,
     load_json_file,
 )
@@ -42,17 +41,6 @@ def test_check_file_exists_error():
     with patch('os.path.isfile', side_effect=OSError("Mocked OSError")):
         with pytest.raises(OSError):
             check_file_exists("some_file.txt")
-
-
-@pytest.mark.parametrize("test_input,expected", [
-    ([{"speaker": "SPEAKER_00", "start": 0.0, "end": 1.0},
-      {"speaker": "SPEAKER_01", "start": 1.0, "end": 2.0}], True),
-    ([{"speaker": "SPEAKER_00", "start": "0.0", "end": 1.0},
-      {"speaker": "SPEAKER_01", "start": 2.0, "end": 1.0}], False),
-    ({"speaker": "SPEAKER_00", "start": 0.0, "end": 1.0}, False),
-])
-def test_validate_json(test_input, expected):
-    assert validate_json(test_input) == expected
 
 
 def test_create_progress_bar():

@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import Any, Dict, Union
+from typing import Any, Dict
 
 from tqdm import tqdm
 
@@ -50,37 +50,6 @@ def check_file_exists(file_path: str) -> bool:
     except OSError as e:
         logging.error(f"Error checking file existence: {e}")
         raise
-
-
-def validate_json(json_data: Dict[str, Any]) -> bool:
-    """
-    Validate the structure of the diarization JSON data.
-
-    :param json_data: The loaded JSON data
-    :type json_data: Dict[str, Any]
-    :return: True if the JSON is valid, False otherwise
-    :rtype: bool
-    """
-    if not isinstance(json_data, list):
-        return False
-
-    required_keys = {"speaker", "start", "end"}
-
-    for item in json_data:
-        if not isinstance(item, dict):
-            return False
-        if not required_keys.issubset(item.keys()):
-            return False
-        if not isinstance(item["speaker"], str):
-            return False
-        if not isinstance(item["start"], (int, float)):
-            return False
-        if not isinstance(item["end"], (int, float)):
-            return False
-        if item["start"] >= item["end"]:
-            return False
-
-    return True
 
 
 def create_progress_bar(total: int, desc: str = "Processing") -> tqdm:

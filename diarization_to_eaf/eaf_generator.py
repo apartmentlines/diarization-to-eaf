@@ -1,8 +1,9 @@
 import os
 import uuid
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from lxml import etree
 from datetime import datetime
+from pathlib import Path
 
 from diarization_to_eaf.utils import create_progress_bar, setup_logging
 
@@ -12,17 +13,20 @@ class EAFGenerator:
     A class to generate ELAN Annotation Format (EAF) files from diarization data.
     """
 
-    def __init__(self, json_file_path: str, operator_segments: List[Dict[str, Any]], caller_segments: List[Dict[str, Any]], log_level: str = "INFO"):
+    def __init__(self, json_file_path: str, operator_segments: List[Dict[str, Any]], caller_segments: List[Dict[str, Any]], media_dir: Optional[Path] = None, log_level: str = "INFO"):
         """
         Initialize the EAFGenerator.
 
         :param json_file_path: Path to the original JSON file (used for naming the output)
         :param operator_segments: List of operator speech segments
         :param caller_segments: List of caller speech segments
+        :param media_dir: Optional path to the directory containing media files
+        :param log_level: Logging level
         """
         self.json_file_path = json_file_path
         self.operator_segments = operator_segments
         self.caller_segments = caller_segments
+        self.media_dir = media_dir
         self.root = None
         self.time_order = None
         self.time_slot_map = {}
@@ -153,41 +157,54 @@ class EAFGenerator:
 
     def _get_relative_media_url(self) -> str:
         """
-        Generate the relative media URL based on the JSON file path.
+        Generate the relative media URL based on the JSON file path and media directory.
         """
-        json_dir = os.path.dirname(self.json_file_path)
-        json_name = os.path.splitext(os.path.basename(self.json_file_path))[0]
-        wav_path = os.path.join(json_dir, f"{json_name}.wav")
-        rel_path = wav_path.replace(os.sep, '/')
+        json_path = Path(self.json_file_path)
+        wav_name = f"{json_path.stem}.wav"
+        
+        if self.media_dir:
+            wav_path = self.media_dir / wav_name
+            rel_path = os.path.relpath(wav_path, json_path.parent)
+        else:
+            rel_path = wav_name
+
+        rel_path = rel_path.replace(os.sep, '/')
         if not rel_path.startswith('.'):
             rel_path = f"./{rel_path}"
-        if not os.path.exists(wav_path):
-            return ""
         return rel_path
 
     def _get_media_url(self) -> str:
         """
-        Generate the media URL based on the JSON file path.
+        Generate the media URL based on the JSON file path and media directory.
         """
-        json_dir = os.path.dirname(self.json_file_path)
-        json_name = os.path.splitext(os.path.basename(self.json_file_path))[0]
-        wav_path = os.path.join(json_dir, f"{json_name}.wav")
-        if not os.path.exists(wav_path):
-            return ""
-        if os.path.dirname(wav_path) == "":
-            return f"file://{os.path.basename(wav_path)}"
+        json_path = Path(self.json_file_path)
+        wav_name = f"{json_path.stem}.wav"
+        
+        if self.media_dir:
+            wav_path = self.media_dir / wav_name
         else:
-            return f"file://{wav_path.replace(os.sep, '/')}"
+            wav_path = json_path.parent / wav_name
 
-    def write_to_file(self) -> str:
+        if not wav_path.exists():
+            return ""
+
+        return f"file://{wav_path.absolute().as_posix()}"
+
+    def write_to_file(self, output_path: Path) -> str:
         """
         Write the generated EAF XML to a file.
 
+        :param output_path: Path where the EAF file should be written
         :return: Path to the generated EAF file
+        :raises OSError: If there's an error creating the directory or writing the file
         """
-        eaf_file_path = f"{os.path.splitext(self.json_file_path)[0]}.eaf"
-        self.logger.debug(f"Writing EAF to file: {eaf_file_path}")
-        tree = etree.ElementTree(self.root)
-        tree.write(eaf_file_path, pretty_print=True, xml_declaration=True, encoding="UTF-8", method="xml")
-        self.logger.info(f"EAF file written to {eaf_file_path}")
-        return eaf_file_path
+        self.logger.debug(f"Writing EAF to file: {output_path}")
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure the output directory exists
+            tree = etree.ElementTree(self.root)
+            tree.write(str(output_path), pretty_print=True, xml_declaration=True, encoding="UTF-8", method="xml")
+            self.logger.info(f"EAF file written to {output_path}")
+            return str(output_path)
+        except OSError as e:
+            self.logger.error(f"Error writing EAF file: {e}")
+            raise

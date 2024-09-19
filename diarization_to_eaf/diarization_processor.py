@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Tuple
 
-from diarization_to_eaf.utils import load_json_file, validate_json, create_progress_bar, setup_logging
+from diarization_to_eaf.utils import load_json_file, create_progress_bar, setup_logging
 
 
 class DiarizationProcessor:
@@ -32,10 +32,40 @@ class DiarizationProcessor:
         """
         self.logger.debug("Loading and validating diarization data")
         data = load_json_file(self.json_file_path)
-        if not validate_json(data):
+        if not data or not self._validate_json(data):
             raise ValueError("Invalid JSON structure in the diarization data")
-        self.diarization_data = data
+        self.diarization_data = data['output']['diarization']
         self.logger.info(f"Successfully loaded and validated data from {self.json_file_path}")
+
+    def _validate_json(self, data: Dict[str, Any]) -> bool:
+        """
+        Validate the structure of the diarization JSON data.
+
+        :param data: The loaded JSON data
+        :type data: Dict[str, Any]
+        :return: True if the JSON is valid, False otherwise
+        :rtype: bool
+        """
+        if not isinstance(data, dict):
+            return False
+        if 'jobId' not in data or 'status' not in data or 'output' not in data:
+            return False
+        if not isinstance(data['output'], dict) or 'diarization' not in data['output']:
+            return False
+        if not isinstance(data['output']['diarization'], list):
+            return False
+        for segment in data['output']['diarization']:
+            if not isinstance(segment, dict):
+                return False
+            if 'speaker' not in segment or 'start' not in segment or 'end' not in segment:
+                return False
+            if not isinstance(segment['speaker'], str):
+                return False
+            if not isinstance(segment['start'], (int, float)) or not isinstance(segment['end'], (int, float)):
+                return False
+            if segment['start'] >= segment['end']:
+                return False
+        return True
 
     def process_diarization_data(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
