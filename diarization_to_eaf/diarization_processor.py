@@ -20,7 +20,9 @@ class DiarizationProcessor:
         self.operator_speaker: str = ""
         self.caller_speakers: set = set()
         self.logger = setup_logging(log_level, __class__.__name__)
-        self.logger.debug(f"Initialized DiarizationProcessor with file: {json_file_path}")
+        self.logger.debug(
+            f"Initialized DiarizationProcessor with file: {json_file_path}"
+        )
 
     def load_and_validate_data(self) -> None:
         """
@@ -34,8 +36,10 @@ class DiarizationProcessor:
         data = load_json_file(self.json_file_path)
         if not data or not self._validate_json(data):
             raise ValueError("Invalid JSON structure in the diarization data")
-        self.diarization_data = data['output']['diarization']
-        self.logger.info(f"Successfully loaded and validated data from {self.json_file_path}")
+        self.diarization_data = data["output"]["diarization"]
+        self.logger.info(
+            f"Successfully loaded and validated data from {self.json_file_path}"
+        )
 
     def _validate_json(self, data: Dict[str, Any]) -> bool:
         """
@@ -48,26 +52,34 @@ class DiarizationProcessor:
         """
         if not isinstance(data, dict):
             return False
-        if 'jobId' not in data or 'status' not in data or 'output' not in data:
+        if "jobId" not in data or "status" not in data or "output" not in data:
             return False
-        if not isinstance(data['output'], dict) or 'diarization' not in data['output']:
+        if not isinstance(data["output"], dict) or "diarization" not in data["output"]:
             return False
-        if not isinstance(data['output']['diarization'], list):
+        if not isinstance(data["output"]["diarization"], list):
             return False
-        for segment in data['output']['diarization']:
+        for segment in data["output"]["diarization"]:
             if not isinstance(segment, dict):
                 return False
-            if 'speaker' not in segment or 'start' not in segment or 'end' not in segment:
+            if (
+                "speaker" not in segment
+                or "start" not in segment
+                or "end" not in segment
+            ):
                 return False
-            if not isinstance(segment['speaker'], str):
+            if not isinstance(segment["speaker"], str):
                 return False
-            if not isinstance(segment['start'], (int, float)) or not isinstance(segment['end'], (int, float)):
+            if not isinstance(segment["start"], (int, float)) or not isinstance(
+                segment["end"], (int, float)
+            ):
                 return False
-            if segment['start'] >= segment['end']:
+            if segment["start"] >= segment["end"]:
                 return False
         return True
 
-    def process_diarization_data(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    def process_diarization_data(
+        self,
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Process the diarization data to separate Operator and Caller segments.
 
@@ -76,17 +88,21 @@ class DiarizationProcessor:
         """
         self.logger.debug("Processing diarization data")
         if not self.diarization_data:
-            raise ValueError("No diarization data loaded. Call load_and_validate_data() first.")
+            raise ValueError(
+                "No diarization data loaded. Call load_and_validate_data() first."
+            )
 
         self._determine_speakers()
 
         operator_segments = []
         caller_segments = []
 
-        progress_bar = create_progress_bar(len(self.diarization_data), "Processing diarization data")
+        progress_bar = create_progress_bar(
+            len(self.diarization_data), "Processing diarization data"
+        )
 
         for segment in self.diarization_data:
-            if segment['speaker'] == self.operator_speaker:
+            if segment["speaker"] == self.operator_speaker:
                 operator_segments.append(segment)
             else:
                 caller_segments.append(segment)
@@ -94,7 +110,9 @@ class DiarizationProcessor:
 
         progress_bar.close()
 
-        self.logger.debug(f"Processed {len(self.diarization_data)} diarization segments")
+        self.logger.debug(
+            f"Processed {len(self.diarization_data)} diarization segments"
+        )
         return operator_segments, caller_segments
 
     def _determine_speakers(self) -> None:
@@ -105,12 +123,17 @@ class DiarizationProcessor:
         if not self.diarization_data:
             raise ValueError("No diarization data available")
 
-        self.operator_speaker = self.diarization_data[0]['speaker']
-        self.caller_speakers = set(segment['speaker'] for segment in self.diarization_data
-                                   if segment['speaker'] != self.operator_speaker)
+        self.operator_speaker = self.diarization_data[0]["speaker"]
+        self.caller_speakers = set(
+            segment["speaker"]
+            for segment in self.diarization_data
+            if segment["speaker"] != self.operator_speaker
+        )
 
         self.logger.debug(f"Identified Operator speaker: {self.operator_speaker}")
-        self.logger.debug(f"Identified Caller speakers: {', '.join(self.caller_speakers)}")
+        self.logger.debug(
+            f"Identified Caller speakers: {', '.join(self.caller_speakers)}"
+        )
 
     def get_speaker_info(self) -> Dict[str, Any]:
         """
@@ -121,5 +144,5 @@ class DiarizationProcessor:
         """
         return {
             "operator": self.operator_speaker,
-            "callers": list(self.caller_speakers)
+            "callers": list(self.caller_speakers),
         }

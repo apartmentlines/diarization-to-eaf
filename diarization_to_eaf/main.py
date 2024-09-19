@@ -17,17 +17,35 @@ def parse_arguments() -> argparse.Namespace:
     :return: Parsed arguments
     :rtype: argparse.Namespace
     """
-    parser = argparse.ArgumentParser(description="Convert speaker diarization JSON to ELAN Annotation Format (EAF)")
+    parser = argparse.ArgumentParser(
+        description="Convert speaker diarization JSON to ELAN Annotation Format (EAF)"
+    )
     group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--input-file", type=str, help="Path to the input JSON file containing speaker diarization data")
-    group.add_argument("--input-dir", type=str, help="Path to the input directory containing JSON files")
-    parser.add_argument("--output-dir", type=str, help="Path to the output directory for EAF files")
-    parser.add_argument("--media-dir", type=str, help="Path to the directory containing media files")
-    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug logging")
+    group.add_argument(
+        "--input-file",
+        type=str,
+        help="Path to the input JSON file containing speaker diarization data",
+    )
+    group.add_argument(
+        "--input-dir",
+        type=str,
+        help="Path to the input directory containing JSON files",
+    )
+    parser.add_argument(
+        "--output-dir", type=str, help="Path to the output directory for EAF files"
+    )
+    parser.add_argument(
+        "--media-dir", type=str, help="Path to the directory containing media files"
+    )
+    parser.add_argument(
+        "-d", "--debug", action="store_true", help="Enable debug logging"
+    )
     return parser.parse_args()
 
 
-def process_file(input_path: Path, output_path: Path, media_dir: Optional[Path], log_level: str) -> None:
+def process_file(
+    input_path: Path, output_path: Path, media_dir: Optional[Path], log_level: str
+) -> None:
     """
     Process a single JSON file and generate an EAF file.
 
@@ -47,7 +65,9 @@ def process_file(input_path: Path, output_path: Path, media_dir: Optional[Path],
 
         # Generate EAF file
         logger.debug("Initializing EAFGenerator")
-        generator = EAFGenerator(str(input_path), operator_segments, caller_segments, media_dir, log_level)
+        generator = EAFGenerator(
+            str(input_path), operator_segments, caller_segments, media_dir, log_level
+        )
         generator.generate_eaf()
         eaf_file_path = generator.write_to_file(output_path)
 
@@ -77,7 +97,7 @@ def main() -> None:
 
             input_path = Path(args.input_file)
             output_dir = Path(args.output_dir) if args.output_dir else input_path.parent
-            output_path = output_dir / input_path.with_suffix('.eaf').name
+            output_path = output_dir / input_path.with_suffix(".eaf").name
 
             process_file(input_path, output_path, media_dir, log_level)
 
@@ -89,8 +109,8 @@ def main() -> None:
 
             output_dir = Path(args.output_dir) if args.output_dir else input_dir
 
-            for json_file in input_dir.glob('*.json'):
-                output_path = output_dir / json_file.with_suffix('.eaf').name
+            for json_file in input_dir.glob("*.json"):
+                output_path = output_dir / json_file.with_suffix(".eaf").name
                 process_file(json_file, output_path, media_dir, log_level)
 
     except FileNotFoundError as e:

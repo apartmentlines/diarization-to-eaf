@@ -27,13 +27,16 @@ def eaf_generator(sample_segments, tmp_path):
     json_file.touch()
     return EAFGenerator(str(json_file), sample_segments[0], sample_segments[1])
 
+
 @pytest.fixture
 def eaf_generator_with_media_dir(sample_segments, tmp_path):
     json_file = tmp_path / "test.json"
     json_file.touch()
     media_dir = tmp_path / "media"
     media_dir.mkdir()
-    return EAFGenerator(str(json_file), sample_segments[0], sample_segments[1], media_dir)
+    return EAFGenerator(
+        str(json_file), sample_segments[0], sample_segments[1], media_dir
+    )
 
 
 def test_init(eaf_generator, sample_segments):
@@ -124,19 +127,26 @@ def test_write_to_file(eaf_generator, tmpdir):
 
     assert root.tag == "ANNOTATION_DOCUMENT"
     assert root.find(".//PROPERTY[@NAME='URN']") is not None
-    assert root.find(".//PROPERTY[@NAME='URN']").text.startswith("urn:nl-mpi-tools-elan-eaf:")
+    assert root.find(".//PROPERTY[@NAME='URN']").text.startswith(
+        "urn:nl-mpi-tools-elan-eaf:"
+    )
 
 
-@pytest.mark.parametrize("json_path, expected_relative_path", [
-    ("file.json", "./file.wav"),
-    ("subdir/file.json", "./file.wav"),
-    ("file1.json", "./file1.wav"),
-    ("subdir1/subdir2/file.json", "./file.wav"),
-])
+@pytest.mark.parametrize(
+    "json_path, expected_relative_path",
+    [
+        ("file.json", "./file.wav"),
+        ("subdir/file.json", "./file.wav"),
+        ("file1.json", "./file1.wav"),
+        ("subdir1/subdir2/file.json", "./file.wav"),
+    ],
+)
 def test_get_media_urls(eaf_generator, json_path, expected_relative_path, mocker):
     eaf_generator.json_file_path = json_path
-    mocker.patch('pathlib.Path.exists', return_value=True)
-    mocker.patch('pathlib.Path.absolute', return_value=Path('/mock/path/to/project/file.wav'))
+    mocker.patch("pathlib.Path.exists", return_value=True)
+    mocker.patch(
+        "pathlib.Path.absolute", return_value=Path("/mock/path/to/project/file.wav")
+    )
 
     relative_url = eaf_generator._get_relative_media_url()
     assert relative_url == expected_relative_path
@@ -145,28 +155,33 @@ def test_get_media_urls(eaf_generator, json_path, expected_relative_path, mocker
     expected_media_url = "file:///mock/path/to/project/file.wav"
     assert media_url == expected_media_url
 
+
 def test_write_to_file_error(eaf_generator, tmpdir):
     eaf_generator.generate_eaf()
     output_path = Path(tmpdir) / "non_existent_dir" / "test_output.eaf"
-    
+
     # Make the directory read-only to force an OSError
     read_only_dir = Path(tmpdir) / "non_existent_dir"
     read_only_dir.mkdir(parents=True)
     read_only_dir.chmod(0o555)  # Read and execute permissions, but no write permission
-    
+
     with pytest.raises(OSError):
         eaf_generator.write_to_file(output_path)
-    
+
     # Clean up: restore write permissions
     read_only_dir.chmod(0o755)
 
-@pytest.mark.parametrize("json_path", [
-    "file.json",
-    "subdir/file.json",
-])
+
+@pytest.mark.parametrize(
+    "json_path",
+    [
+        "file.json",
+        "subdir/file.json",
+    ],
+)
 def test_get_media_urls_file_not_exists(eaf_generator, json_path, mocker):
     eaf_generator.json_file_path = json_path
-    mocker.patch('pathlib.Path.exists', return_value=False)
+    mocker.patch("pathlib.Path.exists", return_value=False)
 
     relative_url = eaf_generator._get_relative_media_url()
     assert relative_url == f"./{Path(json_path).stem}.wav"
@@ -175,7 +190,7 @@ def test_get_media_urls_file_not_exists(eaf_generator, json_path, mocker):
     assert media_url == ""
 
 
-@patch('diarization_to_eaf.eaf_generator.create_progress_bar')
+@patch("diarization_to_eaf.eaf_generator.create_progress_bar")
 def test_progress_bars(mock_progress_bar, eaf_generator):
     mock_progress = mock_progress_bar.return_value
     eaf_generator.generate_eaf()
@@ -184,11 +199,14 @@ def test_progress_bars(mock_progress_bar, eaf_generator):
     assert mock_progress_bar.call_count == 3
     assert mock_progress.update.call_count == 12  # 8 time slots + 4 annotations
     assert mock_progress.close.call_count == 3
+
+
 def test_get_relative_media_url_with_media_dir(eaf_generator_with_media_dir, tmp_path):
     media_file = tmp_path / "media" / "test.wav"
     media_file.touch()
     relative_url = eaf_generator_with_media_dir._get_relative_media_url()
     assert relative_url == "./media/test.wav"
+
 
 def test_get_media_url_with_media_dir(eaf_generator_with_media_dir, tmp_path):
     media_file = tmp_path / "media" / "test.wav"
@@ -196,12 +214,14 @@ def test_get_media_url_with_media_dir(eaf_generator_with_media_dir, tmp_path):
     media_url = eaf_generator_with_media_dir._get_media_url()
     assert media_url == f"file://{media_file.absolute().as_posix()}"
 
+
 def test_get_relative_media_url_without_media_dir(eaf_generator, tmp_path):
     json_file = tmp_path / "test.json"
     json_file.touch()
     eaf_generator.json_file_path = str(json_file)
     relative_url = eaf_generator._get_relative_media_url()
     assert relative_url == "./test.wav"
+
 
 def test_get_media_url_without_media_dir(eaf_generator, tmp_path):
     json_file = tmp_path / "test.json"
@@ -212,7 +232,10 @@ def test_get_media_url_without_media_dir(eaf_generator, tmp_path):
     media_url = eaf_generator._get_media_url()
     assert media_url == f"file://{media_file.absolute().as_posix()}"
 
-def test_get_relative_media_url_with_media_dir_different_location(eaf_generator_with_media_dir, tmp_path):
+
+def test_get_relative_media_url_with_media_dir_different_location(
+    eaf_generator_with_media_dir, tmp_path
+):
     json_file = tmp_path / "project" / "test.json"
     json_file.parent.mkdir(parents=True, exist_ok=True)
     json_file.touch()
@@ -223,7 +246,10 @@ def test_get_relative_media_url_with_media_dir_different_location(eaf_generator_
     relative_url = eaf_generator_with_media_dir._get_relative_media_url()
     assert relative_url == "../media/test.wav"
 
-def test_get_media_url_with_media_dir_different_location(eaf_generator_with_media_dir, tmp_path):
+
+def test_get_media_url_with_media_dir_different_location(
+    eaf_generator_with_media_dir, tmp_path
+):
     json_file = tmp_path / "project" / "test.json"
     json_file.parent.mkdir(parents=True, exist_ok=True)
     json_file.touch()

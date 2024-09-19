@@ -13,7 +13,14 @@ class EAFGenerator:
     A class to generate ELAN Annotation Format (EAF) files from diarization data.
     """
 
-    def __init__(self, json_file_path: str, operator_segments: List[Dict[str, Any]], caller_segments: List[Dict[str, Any]], media_dir: Optional[Path] = None, log_level: str = "INFO"):
+    def __init__(
+        self,
+        json_file_path: str,
+        operator_segments: List[Dict[str, Any]],
+        caller_segments: List[Dict[str, Any]],
+        media_dir: Optional[Path] = None,
+        log_level: str = "INFO",
+    ):
         """
         Initialize the EAFGenerator.
 
@@ -31,7 +38,9 @@ class EAFGenerator:
         self.time_order = None
         self.time_slot_map = {}
         self.logger = setup_logging(log_level, __class__.__name__)
-        self.logger.debug(f"Initialized EAFGenerator with {len(operator_segments)} operator segments and {len(caller_segments)} caller segments")
+        self.logger.debug(
+            f"Initialized EAFGenerator with {len(operator_segments)} operator segments and {len(caller_segments)} caller segments"
+        )
 
     def generate_eaf(self) -> None:
         """
@@ -40,17 +49,19 @@ class EAFGenerator:
         self.logger.debug("Starting EAF generation")
         nsmap = {
             None: "http://www.mpi.nl/tools/elan/EAFv3.0.xsd",
-            "xsi": "http://www.w3.org/2001/XMLSchema-instance"
+            "xsi": "http://www.w3.org/2001/XMLSchema-instance",
         }
-        self.root = etree.Element("ANNOTATION_DOCUMENT",
-                                  attrib={
-                                      "AUTHOR": "",
-                                      "DATE": datetime.now().isoformat(),
-                                      "FORMAT": "3.0",
-                                      "VERSION": "3.0",
-                                      "{http://www.w3.org/2001/XMLSchema-instance}noNamespaceSchemaLocation": "http://www.mpi.nl/tools/elan/EAFv3.0.xsd"
-                                  },
-                                  nsmap=nsmap)
+        self.root = etree.Element(
+            "ANNOTATION_DOCUMENT",
+            attrib={
+                "AUTHOR": "",
+                "DATE": datetime.now().isoformat(),
+                "FORMAT": "3.0",
+                "VERSION": "3.0",
+                "{http://www.w3.org/2001/XMLSchema-instance}noNamespaceSchemaLocation": "http://www.mpi.nl/tools/elan/EAFv3.0.xsd",
+            },
+            nsmap=nsmap,
+        )
 
         # Remove the extra xmlns attribute
         etree.cleanup_namespaces(self.root)
@@ -68,13 +79,20 @@ class EAFGenerator:
         Create the HEADER section of the EAF file.
         """
         self.logger.debug("Creating EAF header")
-        header = etree.SubElement(self.root, "HEADER", attrib={"MEDIA_FILE": "", "TIME_UNITS": "milliseconds"})
+        header = etree.SubElement(
+            self.root, "HEADER", attrib={"MEDIA_FILE": "", "TIME_UNITS": "milliseconds"}
+        )
         relative_url = self._get_relative_media_url()
         media_url = self._get_media_url()
-        etree.SubElement(header, "MEDIA_DESCRIPTOR",
-                         attrib={"MIME_TYPE": "audio/x-wav",
-                                 "MEDIA_URL": media_url,
-                                 "RELATIVE_MEDIA_URL": relative_url})
+        etree.SubElement(
+            header,
+            "MEDIA_DESCRIPTOR",
+            attrib={
+                "MIME_TYPE": "audio/x-wav",
+                "MEDIA_URL": media_url,
+                "RELATIVE_MEDIA_URL": relative_url,
+            },
+        )
         property_elem = etree.SubElement(header, "PROPERTY", attrib={"NAME": "URN"})
         property_elem.text = f"urn:nl-mpi-tools-elan-eaf:{uuid.uuid4()}"
 
@@ -84,21 +102,33 @@ class EAFGenerator:
         """
         self.logger.debug("Creating time order")
         self.time_order = etree.SubElement(self.root, "TIME_ORDER")
-        all_segments = sorted(self.operator_segments + self.caller_segments, key=lambda x: x['start'])
+        all_segments = sorted(
+            self.operator_segments + self.caller_segments, key=lambda x: x["start"]
+        )
 
         progress_bar = create_progress_bar(len(all_segments) * 2, "Creating time slots")
 
         for i, segment in enumerate(all_segments):
-            start_slot = etree.SubElement(self.time_order, "TIME_SLOT",
-                                          attrib={"TIME_SLOT_ID": f"ts{i*2+1}",
-                                                  "TIME_VALUE": str(int(segment['start'] * 1000))})
-            self.time_slot_map[segment['start']] = start_slot.attrib["TIME_SLOT_ID"]
+            start_slot = etree.SubElement(
+                self.time_order,
+                "TIME_SLOT",
+                attrib={
+                    "TIME_SLOT_ID": f"ts{i*2+1}",
+                    "TIME_VALUE": str(int(segment["start"] * 1000)),
+                },
+            )
+            self.time_slot_map[segment["start"]] = start_slot.attrib["TIME_SLOT_ID"]
             progress_bar.update(1)
 
-            end_slot = etree.SubElement(self.time_order, "TIME_SLOT",
-                                        attrib={"TIME_SLOT_ID": f"ts{i*2+2}",
-                                                "TIME_VALUE": str(int(segment['end'] * 1000))})
-            self.time_slot_map[segment['end']] = end_slot.attrib["TIME_SLOT_ID"]
+            end_slot = etree.SubElement(
+                self.time_order,
+                "TIME_SLOT",
+                attrib={
+                    "TIME_SLOT_ID": f"ts{i*2+2}",
+                    "TIME_VALUE": str(int(segment["end"] * 1000)),
+                },
+            )
+            self.time_slot_map[segment["end"]] = end_slot.attrib["TIME_SLOT_ID"]
             progress_bar.update(1)
 
         progress_bar.close()
@@ -118,16 +148,27 @@ class EAFGenerator:
         :param tier_id: ID of the tier (e.g., "Operator" or "Caller")
         :param segments: List of speech segments for this tier
         """
-        tier = etree.SubElement(self.root, "TIER", attrib={"LINGUISTIC_TYPE_REF": "default-lt", "TIER_ID": tier_id})
+        tier = etree.SubElement(
+            self.root,
+            "TIER",
+            attrib={"LINGUISTIC_TYPE_REF": "default-lt", "TIER_ID": tier_id},
+        )
 
-        progress_bar = create_progress_bar(len(segments), f"Creating {tier_id} annotations")
+        progress_bar = create_progress_bar(
+            len(segments), f"Creating {tier_id} annotations"
+        )
 
         for i, segment in enumerate(segments):
             annotation = etree.SubElement(tier, "ANNOTATION")
-            alignable_annotation = etree.SubElement(annotation, "ALIGNABLE_ANNOTATION",
-                                                    attrib={"ANNOTATION_ID": f"{tier_id.lower()[0]}{i+1}",
-                                                            "TIME_SLOT_REF1": self.time_slot_map[segment['start']],
-                                                            "TIME_SLOT_REF2": self.time_slot_map[segment['end']]})
+            alignable_annotation = etree.SubElement(
+                annotation,
+                "ALIGNABLE_ANNOTATION",
+                attrib={
+                    "ANNOTATION_ID": f"{tier_id.lower()[0]}{i+1}",
+                    "TIME_SLOT_REF1": self.time_slot_map[segment["start"]],
+                    "TIME_SLOT_REF2": self.time_slot_map[segment["end"]],
+                },
+            )
             progress_bar.update(1)
 
         progress_bar.close()
@@ -137,8 +178,15 @@ class EAFGenerator:
         Create LINGUISTIC_TYPE elements.
         """
         self.logger.debug("Creating linguistic types")
-        etree.SubElement(self.root, "LINGUISTIC_TYPE",
-                         attrib={"GRAPHIC_REFERENCES": "false", "LINGUISTIC_TYPE_ID": "default-lt", "TIME_ALIGNABLE": "true"})
+        etree.SubElement(
+            self.root,
+            "LINGUISTIC_TYPE",
+            attrib={
+                "GRAPHIC_REFERENCES": "false",
+                "LINGUISTIC_TYPE_ID": "default-lt",
+                "TIME_ALIGNABLE": "true",
+            },
+        )
 
     def _create_constraints(self) -> None:
         """
@@ -146,14 +194,27 @@ class EAFGenerator:
         """
         self.logger.debug("Creating constraints")
         constraints = [
-            ("Time_Subdivision", "Time subdivision of parent annotation's time interval, no time gaps allowed within this interval"),
-            ("Symbolic_Subdivision", "Symbolic subdivision of a parent annotation. Annotations refering to the same parent are ordered"),
+            (
+                "Time_Subdivision",
+                "Time subdivision of parent annotation's time interval, no time gaps allowed within this interval",
+            ),
+            (
+                "Symbolic_Subdivision",
+                "Symbolic subdivision of a parent annotation. Annotations refering to the same parent are ordered",
+            ),
             ("Symbolic_Association", "1-1 association with a parent annotation"),
-            ("Included_In", "Time alignable annotations within the parent annotation's time interval, gaps are allowed")
+            (
+                "Included_In",
+                "Time alignable annotations within the parent annotation's time interval, gaps are allowed",
+            ),
         ]
 
         for stereotype, description in constraints:
-            etree.SubElement(self.root, "CONSTRAINT", attrib={"DESCRIPTION": description, "STEREOTYPE": stereotype})
+            etree.SubElement(
+                self.root,
+                "CONSTRAINT",
+                attrib={"DESCRIPTION": description, "STEREOTYPE": stereotype},
+            )
 
     def _get_relative_media_url(self) -> str:
         """
@@ -161,15 +222,15 @@ class EAFGenerator:
         """
         json_path = Path(self.json_file_path)
         wav_name = f"{json_path.stem}.wav"
-        
+
         if self.media_dir:
             wav_path = self.media_dir / wav_name
             rel_path = os.path.relpath(wav_path, json_path.parent)
         else:
             rel_path = wav_name
 
-        rel_path = rel_path.replace(os.sep, '/')
-        if not rel_path.startswith('.'):
+        rel_path = rel_path.replace(os.sep, "/")
+        if not rel_path.startswith("."):
             rel_path = f"./{rel_path}"
         return rel_path
 
@@ -179,7 +240,7 @@ class EAFGenerator:
         """
         json_path = Path(self.json_file_path)
         wav_name = f"{json_path.stem}.wav"
-        
+
         if self.media_dir:
             wav_path = self.media_dir / wav_name
         else:
@@ -200,9 +261,17 @@ class EAFGenerator:
         """
         self.logger.debug(f"Writing EAF to file: {output_path}")
         try:
-            output_path.parent.mkdir(parents=True, exist_ok=True)  # Ensure the output directory exists
+            output_path.parent.mkdir(
+                parents=True, exist_ok=True
+            )  # Ensure the output directory exists
             tree = etree.ElementTree(self.root)
-            tree.write(str(output_path), pretty_print=True, xml_declaration=True, encoding="UTF-8", method="xml")
+            tree.write(
+                str(output_path),
+                pretty_print=True,
+                xml_declaration=True,
+                encoding="UTF-8",
+                method="xml",
+            )
             self.logger.info(f"EAF file written to {output_path}")
             return str(output_path)
         except OSError as e:

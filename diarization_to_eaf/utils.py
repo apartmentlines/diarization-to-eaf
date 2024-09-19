@@ -6,7 +6,9 @@ from typing import Any, Dict
 from tqdm import tqdm
 
 
-def setup_logging(level: str = "INFO", name: str = "diarization_to_eaf") -> logging.Logger:
+def setup_logging(
+    level: str = "INFO", name: str = "diarization_to_eaf"
+) -> logging.Logger:
     """
     Set up logging for the application.
 
@@ -25,7 +27,9 @@ def setup_logging(level: str = "INFO", name: str = "diarization_to_eaf") -> logg
 
     # Create a new handler
     handler = logging.StreamHandler()
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
@@ -78,7 +82,7 @@ def load_json_file(file_path: str) -> Dict[str, Any]:
     :raises OSError: If there's an error reading the file
     """
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, "r", encoding="utf-8") as file:
             data = json.load(file)
         return data
     except json.JSONDecodeError as e:
