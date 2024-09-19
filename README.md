@@ -32,10 +32,43 @@ This Python script converts speaker diarization data from a JSON file to an ELAN
 Run the script from the command line:
 
 ```
-diarization-to-eaf test.json
+diarization-to-eaf --input-file test.json --output-dir output_directory
+diarization-to-eaf --input-dir input_directory --output-dir output_directory
 ```
 
-This will create an .eaf file in the same directory as the input JSON file, with the same basename.
+Optional arguments:
+- `--media-dir`: Specify the directory containing media files
+- `--debug`: Enable debug logging
+
+This will create .eaf files in the specified output directory.
+
+## Media Directory
+
+The `--media-dir` option allows you to specify a directory containing media files. When provided, the generated EAF files will reference media files from this directory, making it easier to manage your audio files separately from your JSON and EAF files.
+
+## Testing
+
+To run the tests, use the following command:
+
+```
+pytest
+```
+
+This will run all the tests in the `tests` directory.
+
+## Development
+
+To set up the development environment:
+
+1. Clone the repository
+2. Navigate to the project directory
+3. Install the package in editable mode:
+
+```
+pip install -e .
+```
+
+This allows you to make changes to the code and immediately see the effects without reinstalling the package.
 
 ## JSON file format
 
