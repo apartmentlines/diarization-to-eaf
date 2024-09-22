@@ -71,6 +71,10 @@ def process_file(
         processor.load_and_validate_data()
         operator_segments, caller_segments = processor.process_diarization_data()
 
+        if not operator_segments and not caller_segments:
+            logger.warning(f"No diarization data found in {input_path}. Skipping EAF generation.")
+            return
+
         # Generate EAF file
         logger.debug("Initializing EAFGenerator")
         generator = EAFGenerator(

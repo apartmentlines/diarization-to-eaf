@@ -88,9 +88,8 @@ class DiarizationProcessor:
         """
         self.logger.debug("Processing diarization data")
         if not self.diarization_data:
-            raise ValueError(
-                "No diarization data loaded. Call load_and_validate_data() first."
-            )
+            self.logger.warning("No diarization data found. Returning empty segments.")
+            return [], []
 
         self._determine_speakers()
 
